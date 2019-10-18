@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer-core');
 const _cliProgress = require('cli-progress');
 const fs = require('fs')
 
-// 20190217 扫描动漫之家漫画订阅  -> 同步到漫画柜
+// 20191018 扫描动漫之家漫画订阅  -> 同步到漫画柜
 
 
 const dmzjBar = new _cliProgress.Bar({
@@ -41,7 +41,7 @@ let dmzj = (async () => {
   await page.setCookie(...dmzjCookie)
   await page.goto(dmzjSub);
 
-  const maxPageNum = await page.$eval('#page_id>a:nth-last-child(3)', e => e.innerText)
+  const maxPageNum = 1
 
   // progress
   dmzjBar.start(maxPageNum, 0)
@@ -51,44 +51,30 @@ let dmzj = (async () => {
     currentPage: 1
   }
 
-  for (let i = 0; i < maxPageNum; i++) {
-    // progree update
-    dmzjBar.update(i + 1)
+  dmzjMangaTitle = await page.evaluate((info) => {
 
-    info.currentPage = i
+    const data = new FormData()
+    data.append('page', 1)
+    data.append('type_id', 1)
+    data.append('letter_id', 0)
+    data.append('read_id', 1)
 
-    let list = await page.evaluate((info) => {
 
-      const data = new FormData()
-      data.append('page', info.currentPage + 1)
-      data.append('type_id', 1)
-      data.append('letter_id', 0)
-      data.append('read_id', 1)
-
-      return fetch(info.url, {
-        method: 'POST',
-        body: data,
+    return fetch(info.url, {
+      method: 'POST',
+      body: data,
+    })
+      .then(res => {
+        return res.text()
+          .then(text => {
+            const titleReg = /<h3><a.+>(.+?)<\/a><\/h3>/gm
+            return text.match(titleReg).map(x => x.replace(titleReg, '$1'))
+          })
       })
-        .then(res => {
-          return res.text()
-            .then(text => {
-              return text
-                .replace(/<a.+?>/gm, '')
-                .match(/3>.+?</gm)
-                .map(e => e.slice(2, -1))
-            })
-        })
-
-    }, info)
-
-
-
-    dmzjMangaTitle.push.apply(dmzjMangaTitle, list)
-    setting.dmzjMaxPage = maxPageNum
-  }
+  }, info)
 
   dmzjBar.stop()
-
+  console.log(dmzjMangaTitle)
   fs.writeFileSync('./mangaList.log', JSON.stringify(dmzjMangaTitle))
   //fs.writeFileSync('./setting.json', JSON.stringify(setting))
   //console.log(JSON.parse(fs.readFileSync('./mangaList.log','utf-8')))
@@ -119,6 +105,7 @@ let mhg = (async () => {
   for (let i = 0; i < dmzjMangaTitle.length; i++) {
 
     if (sleep1 === 100) {
+      console.log(`---等待---`)
       await page.waitFor(5000)
       sleep1 = 0
     }
@@ -156,7 +143,11 @@ let mhg = (async () => {
     bookId.push(book_id)
     sleep1++
 
+
+    process.stdout.write(`${i}|${dmzjMangaTitle[i]}\r`)
   }
+
+
 
   mhgBar.stop()
   fs.writeFileSync('./bookId.log', JSON.stringify(bookId))
