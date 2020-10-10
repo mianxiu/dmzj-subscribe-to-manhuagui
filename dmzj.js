@@ -2,7 +2,8 @@ const puppeteer = require('puppeteer-core');
 const _cliProgress = require('cli-progress');
 const fs = require('fs')
 
-// 20191018 扫描动漫之家漫画订阅  -> 同步到漫画柜
+// 20201010 更新dmzj域名
+// 注意cookie域名也要替换为i.dmzj1.com
 
 
 const dmzjBar = new _cliProgress.Bar({
@@ -14,8 +15,8 @@ const mhgBar = new _cliProgress.Bar({
   barsize: 20
 }, _cliProgress.Presets.rect)
 
-
-const dmzjSub = 'https://i.dmzj.com//subscribe'
+const dmzjDomain = 'http://i.dmzj1.com/'
+const dmzjSub = `${dmzjDomain}subscribe`
 const mhgWeb = 'https://www.manhuagui.com/comic/0001/'
 
 
@@ -47,7 +48,7 @@ let dmzj = (async () => {
   dmzjBar.start(maxPageNum, 0)
 
   let info = {
-    url: 'https://i.dmzj.com/ajax/my/subscribe',
+    url: `${dmzjDomain}ajax/my/subscribe`,
     currentPage: 1
   }
 
@@ -147,7 +148,7 @@ let mhg = (async () => {
     process.stdout.write(`${i}|${dmzjMangaTitle[i]}\r`)
   }
 
-
+  
 
   mhgBar.stop()
   fs.writeFileSync('./bookId.log', JSON.stringify(bookId))
